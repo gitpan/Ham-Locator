@@ -2,8 +2,8 @@
 
 #=======================================================================
 # Locator.pm / Ham::Locator
-# $Id: Locator.pm 4 2010-12-17 20:55:07Z andys $
-# $HeadURL: https://daedalus.dmz.dn7.org.uk/svn/Ham-Locator/lib/Ham/Locator.pm $
+# $Id: Locator.pm 8 2011-01-15 19:23:23Z andys $
+# $HeadURL: http://daedalus.dmz.dn7.org.uk/svn/Ham-Locator/lib/Ham/Locator.pm $
 # (c)2010 Andy Smith <andy.smith@nsnw.co.uk>
 #-----------------------------------------------------------------------
 #:Description
@@ -18,8 +18,9 @@
 # my ($latitude, $longitude) = $m->loc2latlng;
 #=======================================================================
 #
-# With thanks to http://home.arcor.de/waldemar.kebsch/The_Makrothen_Contest/fmaidenhead.js
-#
+# With thanks to:-
+# * http://home.arcor.de/waldemar.kebsch/The_Makrothen_Contest/fmaidenhead.js
+# * http://no.nonsense.ee/qthmap/index.js
 
 # The pod (Perl documentation) for this module is provided inline. For a
 # better-formatted version, please run:-
@@ -54,16 +55,17 @@ package Ham::Locator;
 use strict;
 use warnings;
 
-our $VERSION = '0.001';
+our $VERSION = '0.0002';
 
 # Module inclusion
 use Carp;
 use Data::Dumper;
+use POSIX qw(floor fmod);
 
 # Set up accessor methods with Class::Accessor
 use base qw(Class::Accessor);
 __PACKAGE__->follow_best_practice;
-__PACKAGE__->mk_accessors( qw(loc lnglat) );
+__PACKAGE__->mk_accessors( qw(loc latlng precision) );
 
 =head1 CONSTRUCTORS
 
@@ -149,6 +151,67 @@ sub n2l
 
 =head1 METHODS
 
+=head2 $locator->latlng2loc
+
+converts the latitude and longitude set by B<set_latlng> to the locator, and returns it as a string.
+
+=cut
+
+sub latlng2loc
+{
+	my ($self) = @_;
+
+	if($self->get_latlng eq "")
+	{
+		return 0;
+	}
+
+	my $latlng = $self->get_latlng;
+
+	my $field_lat	= @{$latlng}[0];
+	my $field_lng	= @{$latlng}[1];
+
+	my $locator;
+
+	my $lat = $field_lat + 90;
+	my $lng = $field_lng + 180;
+
+	# Field
+	$lat = ($lat / 10) + 0.0000001;
+	$lng = ($lng / 20) + 0.0000001;
+	$locator .= uc($self->n2l(floor($lng))).uc($self->n2l(floor($lat)));
+
+	# Square
+	$lat = 10 * ($lat - floor($lat));
+	$lng = 10 * ($lng - floor($lng));
+	$locator .= floor($lng).floor($lat);
+	
+	# Subsquare
+	$lat = 24 * ($lat - floor($lat));
+	$lng = 24 * ($lng - floor($lng));
+	$locator .= $self->n2l(floor($lng)).$self->n2l(floor($lat));
+
+	# Extended square
+	$lat = 10 * ($lat - floor($lat));
+	$lng = 10 * ($lng - floor($lng));
+	$locator .= floor($lng).floor($lat);
+	
+	# Extended Subsquare
+	$lat = 24 * ($lat - floor($lat));
+	$lng = 24 * ($lng - floor($lng));
+	$locator .= $self->n2l(floor($lng)).$self->n2l(floor($lat));
+
+	if($self->get_precision)
+	{
+		return substr $locator, 0, $self->get_precision;
+	}
+	else
+	{
+		return $locator;
+	}
+}
+	
+
 =head2 $locator->loc2latlng
 
 Converts the locator set by B<set_loc> to latitude and longitude, and returns them as an array of two values.
@@ -165,50 +228,54 @@ sub loc2latlng
 	}
 
 	my $loc = $self->get_loc;
-	my $useSubsquare;
 
-	if(length $loc eq 4)
+	if(length $loc lt 4)
 	{
-		$loc = $loc . "MM";
-		$useSubsquare = 0;
+		$loc .= "55LL55LL";
 	}
-	elsif(length $loc ne 6)
+	elsif(length $loc lt 6)
 	{
+		$loc .= "LL55LL";
+	}
+	elsif(length $loc lt 8)
+	{
+		$loc .= "55LL";
+	}
+	elsif(length $loc lt 10)
+	{
+		$loc .= "LL";
+	}
+
+	if($loc !~ m/[a-rA-R]{2}[0-9]{2}[a-xA-X]{2}[0-9]{2}[a-xA-X]{2}/)
+	{
+		print "Not a valid locator.\n";
 		return 0;
 	}
-	else
+
+	$loc = lc($loc);
+
+	my $i = 0;
+	my @l = ();
+
+	while ($i < 10)
 	{
-		$useSubsquare = 1;
+		my $a = substr $loc, $i, 1;
+		if($a =~ m/[a-zA-Z]/)
+		{
+			$l[$i] = $self->l2n($a);
+		}
+		else
+		{
+			$l[$i] = int(substr $loc, $i, 1);
+		}
+		$i++;
 	}
 
-	my $field_x		= substr $loc, 0, 1;
-	my $field_y		= substr $loc, 1, 1;
-	my $square_x	= substr $loc, 2, 1;
-	my $square_y	= substr $loc, 3, 1;
-	my $subsq_x		= substr $loc, 4, 1;
-	my $subsq_y		= substr $loc, 5, 1;
+	my $lng = (($l[0] * 20) + ($l[2] * 2) + ($l[4]/12) + ($l[6]/120) + ($l[8]/2880) - 180);
+	my $lat = (($l[1] * 10) + $l[3] + ($l[5]/24) + ($l[7]/240) + ($l[9]/5760) - 90);
 
-	my $field_x_n = $self->l2n($field_x);
-	my $field_y_n = $self->l2n($field_y);
-	my $subsq_x_n = $self->l2n($subsq_x);
-	my $subsq_y_n = $self->l2n($subsq_y);
+	return ($lat, $lng);
 
-	my $calc_field_x = $field_x_n*10 + $square_x + ($subsq_x_n/24);
-	if($useSubsquare eq 1)
-	{
-		$calc_field_x = $calc_field_x + (1/48);
-	}
-	$calc_field_x = $calc_field_x * 2;
-	$calc_field_x = $calc_field_x - 180;
-
-	my $calc_field_y = $field_y_n*10 + $square_y + ($subsq_y_n/24);
-	if($useSubsquare eq 1)
-	{
-		$calc_field_y = $calc_field_y + (1/48);
-	}
-	$calc_field_y = $calc_field_y - 90;
-
-	return "$calc_field_x $calc_field_y";
 };
 
 =head1 CAVEATS
@@ -223,7 +290,7 @@ This module was written by B<Andy Smith> <andy.smith@netprojects.org.uk>.
 
 =head1 COPYRIGHT
 
-$Id: Locator.pm 4 2010-12-17 20:55:07Z andys $
+$Id: Locator.pm 8 2011-01-15 19:23:23Z andys $
 
 (c)2009 Andy Smith (L<http://andys.org.uk/>)
 

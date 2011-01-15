@@ -2,7 +2,7 @@
 
 #=======================================================================
 # Locator.pm / Ham::Locator
-# $Id: Locator.pm 8 2011-01-15 19:23:23Z andys $
+# $Id: Locator.pm 9 2011-01-15 19:36:37Z andys $
 # $HeadURL: http://daedalus.dmz.dn7.org.uk/svn/Ham-Locator/lib/Ham/Locator.pm $
 # (c)2010 Andy Smith <andy.smith@nsnw.co.uk>
 #-----------------------------------------------------------------------
@@ -55,7 +55,7 @@ package Ham::Locator;
 use strict;
 use warnings;
 
-our $VERSION = '0.0002';
+our $VERSION = '0.0003';
 
 # Module inclusion
 use Carp;
@@ -78,6 +78,14 @@ Creates a new C<Ham::Locator> object.
 =head2 $locator->set_loc(I<locator>)
 
 Sets the locator to use for conversion to latitude and longitude.
+
+=head2 $locator->set_latlng((I<latitude>, I<longitude>))
+
+Sets the longitude and latitude to use for conversion to the locator.
+
+=head2 $locator->set_precision(I<precision>)
+
+Sets the number of characters of the locator reference to return when calling B<latlng2loc>.
 
 =cut
 
@@ -280,17 +288,15 @@ sub loc2latlng
 
 =head1 CAVEATS
 
-The obvious latlng2loc doesn't exist yet. This module was written to serve a specific purpose, so hopefully I'll be adding this shortly.
-
 =head1 BUGS
 
-=item1 * None, other than what's already been mentioned under B<CAVEATS>.
+=item1 * None, hopefully!
 
 This module was written by B<Andy Smith> <andy.smith@netprojects.org.uk>.
 
 =head1 COPYRIGHT
 
-$Id: Locator.pm 8 2011-01-15 19:23:23Z andys $
+$Id: Locator.pm 9 2011-01-15 19:36:37Z andys $
 
 (c)2009 Andy Smith (L<http://andys.org.uk/>)
 

@@ -2,7 +2,7 @@
 
 #=======================================================================
 # Locator.pm / Ham::Locator
-# $Id: Locator.pm 9 2011-01-15 19:36:37Z andys $
+# $Id: Locator.pm 10 2011-01-16 15:36:53Z andys $
 # $HeadURL: http://daedalus.dmz.dn7.org.uk/svn/Ham-Locator/lib/Ham/Locator.pm $
 # (c)2010 Andy Smith <andy.smith@nsnw.co.uk>
 #-----------------------------------------------------------------------
@@ -55,7 +55,7 @@ package Ham::Locator;
 use strict;
 use warnings;
 
-our $VERSION = '0.0003';
+our $VERSION = '0.1000';
 
 # Module inclusion
 use Carp;
@@ -296,7 +296,7 @@ This module was written by B<Andy Smith> <andy.smith@netprojects.org.uk>.
 
 =head1 COPYRIGHT
 
-$Id: Locator.pm 9 2011-01-15 19:36:37Z andys $
+$Id: Locator.pm 10 2011-01-16 15:36:53Z andys $
 
 (c)2009 Andy Smith (L<http://andys.org.uk/>)
 
